@@ -111,7 +111,8 @@ const int   V_TIM_F     = 60;
 // Variables for pitch adjustment
 int         global_pitch = 80;
 const int   freq_str_sz  = 3;
-char       *freq_str     = (char *)malloc(freq_str_sz * sizeof(char));
+// +1 so IntToStr can write the NUL terminator at freq_str[freq_str_sz]
+char       *freq_str     = (char *)malloc((freq_str_sz + 1) * sizeof(char));
 
 // Used to tell WndProc that TTS buffer is filled up.
 #define TTS_BUFFER_FULL 957
@@ -154,6 +155,55 @@ char      *prefix_rate;                         // Prefix string for speech rate
 char      *prefix_freq;                         // Prefix string for baseline pitch
 int        voice_select = 0;                    // Used for voice selection via hotkeys
 
+// ------------------------------------------------------------------
+// WAV export support
+//
+// The synthesizer has no "render to buffer" entry point; it only plays
+// audio through WINMM (waveOutOpen/waveOutWrite/waveOutClose, imported
+// by name in B32_TTS.DLL). To export a WAV we patch those three slots in
+// the DLL's import table and tap the PCM as it streams to the device.
+// Playback is untouched -- capture just observes the same buffers.
+// ------------------------------------------------------------------
+#define TARGET_SAMPLE_RATE 44100        // standard export rate
+
+// Original WINMM entry points, saved when we patch the import table.
+typedef MMRESULT (WINAPI *waveOutOpenF )(LPHWAVEOUT, UINT, LPCWAVEFORMATEX, DWORD, DWORD, DWORD);
+typedef MMRESULT (WINAPI *waveOutWriteF)(HWAVEOUT, LPWAVEHDR, UINT);
+typedef MMRESULT (WINAPI *waveOutCloseF)(HWAVEOUT);
+waveOutOpenF  _origWaveOutOpen  = 0;
+waveOutWriteF _origWaveOutWrite = 0;
+waveOutCloseF _origWaveOutClose = 0;
+
+// Capture state (only active during an export).
+bool          g_capturing    = false;   // true while an export is in progress
+char         *g_cap_buf      = 0;        // raw PCM exactly as the synthesizer emits it
+unsigned int  g_cap_size     = 0;        // bytes captured so far
+unsigned int  g_cap_cap      = 0;        // allocated capacity of g_cap_buf
+int           g_cap_rate     = 11025;    // format the synthesizer proposes at waveOutOpen
+int           g_cap_channels = 1;        //   (channels honored: mono unless it proposes stereo)
+int           g_cap_bits     = 16;
+char          g_export_path[MAX_PATH] = {0};
+HWND          g_hWnd         = 0;        // main window, for the "export done" notification
+
+// 44-byte canonical RIFF/WAVE header written ahead of the PCM data.
+#pragma pack(push, 1)
+typedef struct {
+	char           riff[4];       // "RIFF"
+	unsigned int   size;          // file size - 8
+	char           wave[4];       // "WAVE"
+	char           fmt[4];        // "fmt "
+	unsigned int   fmt_size;      // 16 for PCM
+	unsigned short fmt_tag;       // 1 = PCM
+	unsigned short channels;
+	unsigned int   sample_rate;
+	unsigned int   byte_rate;
+	unsigned short block_align;
+	unsigned short bits;
+	char           data[4];       // "data"
+	unsigned int   data_bytes;
+} WavHeader;
+#pragma pack(pop)
+
 // About and help text for the synthesizer to speak
 //const char *version_text = "Best speak version one point oh two is running."; // no longer used.
 
@@ -177,4 +227,5 @@ const char *help_text    =
 	"F10 to raise pitch. "
 	"F11 to change voice forwards. "
 	"Control F11 to change voice backwards. "
+	"Control E to export spoken text to a wave file. "
 	"End of help!";

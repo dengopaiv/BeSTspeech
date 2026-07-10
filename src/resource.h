@@ -36,6 +36,7 @@
 #define ID_CONTROLS_PITCHUP             32800
 #define ID_CONTROLS_PITCHDOWN           32801
 #define IDM_HELP                        32804
+#define ID_FILE_EXPORTWAV               32805
 #define IDC_STATIC                      -1
 
 // Next default values for new objects

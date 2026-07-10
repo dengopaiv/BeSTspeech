@@ -43,6 +43,8 @@ IDC_BESTSPEAK MENU DISCARDABLE
 BEGIN
     POPUP "&File"
     BEGIN
+        MENUITEM "&Export to WAV...\tCtrl+E",    ID_FILE_EXPORTWAV
+        MENUITEM SEPARATOR
         MENUITEM "E&xit",                       IDM_EXIT
     END
     POPUP "&Controls"
@@ -121,8 +123,8 @@ STRINGTABLE DISCARDABLE
 BEGIN
     IDS_APP_TITLE           "BeSTspeak"
     IDC_BESTSPEAK           "BESTSPEAK"
-    COPYLEFT_STRING         "Copyleft © 2024 Anthony C. Bartman (@rommix0)"
-    COPYRIGHT_STRING        "Copyright © 1985, 1991 Berkeley Speech Technologies, Inc."
+    COPYLEFT_STRING         "Copyleft ï¿½ 2024 Anthony C. Bartman (@rommix0)"
+    COPYRIGHT_STRING        "Copyright ï¿½ 1985, 1991 Berkeley Speech Technologies, Inc."
 END
 
 #endif    // English (U.S.) resources
