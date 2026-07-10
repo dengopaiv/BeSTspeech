@@ -49,9 +49,10 @@ int GetGlobalRate() {
 	return (int)get_rate;
 }
 
-// Assign text to string using malloc
+// Assign text to string. realloc (== malloc when the target is NULL) frees
+// the previous string, so repeated voice/pitch changes don't leak.
 void AssignToString(char *&string_to_assign, const char *text) {
-	string_to_assign = (char *)malloc(strlen(text) + 1);
+	string_to_assign = (char *)realloc(string_to_assign, strlen(text) + 1);
 	strcpy(string_to_assign, text);
 }
 
@@ -76,8 +77,9 @@ void SetFreqPrefix(char *&prefix_to_assign, int pitch) {
 	IntToStr(pitch);
 
 	const char *freq_to_add = freq_str;
-	// "~f" (2) + up to freq_str_sz digits + "]" (1) + NUL (1)
-	prefix_to_assign = (char *)malloc((freq_str_sz + 4) * sizeof(char));
+	// "~f" (2) + up to freq_str_sz digits + "]" (1) + NUL (1).
+	// realloc frees the previous prefix so repeated pitch changes don't leak.
+	prefix_to_assign = (char *)realloc(prefix_to_assign, (freq_str_sz + 4) * sizeof(char));
 	strcpy(prefix_to_assign, "~f");
 	strcat(prefix_to_assign, freq_to_add);
 	strcat(prefix_to_assign, "]");
